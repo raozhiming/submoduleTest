@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import os
 import sys
@@ -12,7 +12,7 @@ from collections import OrderedDict
 
 parser = argparse.ArgumentParser(description='Build the Elastor.Trinity project.',
                                  formatter_class=argparse.RawTextHelpFormatter)
-parser.add_argument('target', metavar='TARGET', choices=['all', 'build', 'push', 'tag', 'update', 'version'],
+parser.add_argument('target', metavar='TARGET', choices=['all', 'build', 'push', 'tag', 'update', 'incversion'],
                     help=textwrap.dedent('''\
                          Specify the target to build.
                          all: build all module: launcher, dapp, runtime;
@@ -46,15 +46,17 @@ def check_fabric():
     api_secret = os.getenv("FABRIC_API_SECRET");
     if api_key is None or api_key.strip()=="":
         print("FABRIC_API_KEY not set!")
-        sys.exit(ret)
+        sys.exit(1)
     if api_secret is None or api_secret.strip()=="":
         print("FABRIC_API_SECRET not set!")
-        sys.exit(ret)
+        sys.exit(1)
 
 def update_code():
     os.chdir(PROJECT_DIR_PATH)
     # prompt
-    # TODO
+    update_code = input("Any changes in the working tree are discarded. Type 'y' to continue :")
+    if update_coder.lower() != 'y':
+        sys.exit(1)
     run_cmd('git reset --hard')
     run_cmd("git submodule foreach git reset --hard & git checkout master")
     run_cmd('git pull --rebase')
@@ -63,14 +65,18 @@ def update_code():
 def tag():
     # for Trinity and all submodules
     # get tag name
-    tagName = 'release'
+    tagName = input("Pls input the tag name:")
+    tag_push = input("tag name is " + tagName + "\nType 'y' to tag and push :")
+    if tag_push.lower() != 'y':
+        sys.exit(1)
+
     os.chdir(PROJECT_DIR_PATH)
     cmd = "git tag %s & git push origin %s"%(tagName,tagName)
     run_cmd(cmd)
     cmd = "git submodule foreach git tag %s & git push origin %s"%(tagName,tagName)
     run_cmd(cmd)
 
-def increase_version(manifest):
+def increase_version_manifest(manifest):
     file_in = open(manifest, "r")
     data = json.load(file_in, object_pairs_hook=OrderedDict)
 
@@ -88,6 +94,23 @@ def increase_version(manifest):
     file_out.write(json.dumps(data, indent=4))
     file_out.close()
 
+def increase_version_runtime():
+    config_file = RUNTIME_DIR_PATH + "/www_files/config/preferences.json"
+    file_in = open(config_file, "r")
+    data = json.load(file_in, object_pairs_hook=OrderedDict)
+
+    rindex = data['version'].rfind('.')
+    preVersion = data['version'][0:rindex+1]
+    miniVersion = data['version'][rindex+1:]
+    data['version'] = preVersion + str(int(miniVersion) + 1)
+
+    print("    version:" + str(data['version']))
+    file_in.close()
+
+    file_out = open(config_file, 'w')
+    file_out.write(json.dumps(data, indent=4))
+    file_out.close()
+
 def push_code():
     cmd = "git add src/assets/manifest.json & git commit -m 'increase version for release' & git push"
     # run_cmd(cmd)
@@ -101,6 +124,10 @@ if args.target == "tag":
     tag()
 
 if args.target == "push":
+    print("Runtime: ")
+    os.chdir(RUNTIME_DIR_PATH)
+    push_code()
+
     print("Launcher: ")
     os.chdir(LAUNCHER_DIR_PATH)
     push_code()
@@ -112,8 +139,10 @@ if args.target == "push":
             print("Dapp push code: " + dir)
             os.chdir(dapp_dir)
             push_code()
+
     # Trinity repo
     os.chdir(PROJECT_DIR_PATH)
+    run_cmd('git add Runtime')
     run_cmd('git add Launcher')
 
     dirs = os.listdir(IONIC_DIR_PATH)
@@ -123,9 +152,11 @@ if args.target == "push":
 
     run_cmd("git commit -m 'increase version for release' & git push")
 
-if args.target == "all":
+if args.target == "all" or args.target == "incversion":
+    increase_version_runtime()
+
     print("Launcher: ")
-    increase_version(LAUNCHER_DIR_PATH +'/src/assets/manifest.json')
+    increase_version_manifest(LAUNCHER_DIR_PATH +'/src/assets/manifest.json')
 
     dirs = os.listdir(IONIC_DIR_PATH)
     for dir in dirs:
@@ -133,7 +164,7 @@ if args.target == "all":
         if os.path.isdir(dapp_dir):
             print("Dapp: " + dir)
             os.chdir(dapp_dir)
-            increase_version(dapp_dir +'/src/assets/manifest.json')
+            increase_version_manifest(dapp_dir +'/src/assets/manifest.json')
 
 if args.target == "all" or args.target == "build":
     os.chdir(PROJECT_DIR_PATH)
