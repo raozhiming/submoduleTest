@@ -55,7 +55,7 @@ def update_code():
     os.chdir(PROJECT_DIR_PATH)
     # prompt
     update_code = input("Any changes in the working tree are discarded. Type 'y' to continue :")
-    if update_coder.lower() != 'y':
+    if update_code.lower() != 'y':
         sys.exit(1)
     run_cmd('git reset --hard')
     run_cmd("git submodule foreach git reset --hard & git checkout master")
