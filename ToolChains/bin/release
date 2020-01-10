@@ -10,17 +10,17 @@ import timeit
 import json
 from collections import OrderedDict
 
-parser = argparse.ArgumentParser(description='Build the Elastor.Trinity project.',
+parser = argparse.ArgumentParser(description='For Trinity release',
                                  formatter_class=argparse.RawTextHelpFormatter)
-parser.add_argument('target', metavar='TARGET', choices=['all', 'build', 'push', 'tag', 'update', 'incversion'],
+parser.add_argument('target', metavar='TARGET', choices=['all', 'build', 'incversion', 'push', 'tag', 'update'],
                     help=textwrap.dedent('''\
                          Specify the target to build.
                          all: build all module: launcher, dapp, runtime;
-                         launcher: build launcher, runtime;
-                         runtime: build runtime;
-                         clean: delete runtime platforms;
-                         clobber: delete all build files;
-                         plugin: reintall the specify plugin.
+                         build: build launcher, runtime;
+                         incversion: add version for launcher runtime dapps;
+                         push: push change;
+                         tag: add tag for trinity and all submodules;
+                         update: update code.
                      '''))
 args = parser.parse_args()
 
