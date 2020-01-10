@@ -46,10 +46,10 @@ def check_fabric():
     api_secret = os.getenv("FABRIC_API_SECRET");
     if api_key is None or api_key.strip()=="":
         print("FABRIC_API_KEY not set!")
-        return
+        sys.exit(ret)
     if api_secret is None or api_secret.strip()=="":
         print("FABRIC_API_SECRET not set!")
-        return
+        sys.exit(ret)
 
 def update_code():
     os.chdir(PROJECT_DIR_PATH)
@@ -90,7 +90,7 @@ def increase_version(manifest):
 
 def push_code():
     cmd = "git add src/assets/manifest.json & git commit -m 'increase version for release' & git push"
-    run_cmd(cmd)
+    # run_cmd(cmd)
 
 startTime = timeit.default_timer()
 
@@ -137,6 +137,7 @@ if args.target == "all":
 
 if args.target == "all" or args.target == "build":
     os.chdir(PROJECT_DIR_PATH)
+    check_fabric()
     run_cmd('./ToolChains/bin/build all --release')
 
 elapsed = timeit.default_timer() - startTime
