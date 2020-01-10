@@ -1,3 +1,6 @@
 [submodule "Dapps/Ionic/IntentDemo"]
 	path = Dapps/Ionic/IntentDemo
 	url = git@github.com:raozhiming/Elastos.Trinity.DApps.IntentDemo.git
+[submodule "Launcher"]
+	path = Launcher
+	url = git@github.com:raozhiming/Elastos.Trinity.DApps.Launcher.git

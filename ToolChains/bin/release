@@ -12,7 +12,7 @@ from collections import OrderedDict
 
 parser = argparse.ArgumentParser(description='Build the Elastor.Trinity project.',
                                  formatter_class=argparse.RawTextHelpFormatter)
-parser.add_argument('target', metavar='TARGET', choices=['all', 'build', 'commit', 'tag', 'update', 'version'],
+parser.add_argument('target', metavar='TARGET', choices=['all', 'build', 'push', 'tag', 'update', 'version'],
                     help=textwrap.dedent('''\
                          Specify the target to build.
                          all: build all module: launcher, dapp, runtime;
@@ -65,10 +65,12 @@ def tag():
     # get tag name
     tagName = 'release'
     os.chdir(PROJECT_DIR_PATH)
-    run_cmd("git tag tagName & git push origin tagName")
-    run_cmd("git submodule foreach git tag tagName & git push origin tagName")
+    cmd = "git tag %s & git push origin %s"%(tagName,tagName)
+    run_cmd(cmd)
+    cmd = "git submodule foreach git tag %s & git push origin %s"%(tagName,tagName)
+    run_cmd(cmd)
 
-def increaseVersion(manifest):
+def increase_version(manifest):
     file_in = open(manifest, "r")
     data = json.load(file_in, object_pairs_hook=OrderedDict)
 
@@ -78,7 +80,6 @@ def increaseVersion(manifest):
     data['version'] = preVersion + str(int(miniVersion) + 1)
     data['version_code'] += 1
 
-    # print(manifest)
     print("    version:" + str(data['version']))
     print("    version_code:" + str(data['version_code']))
     file_in.close()
@@ -87,14 +88,44 @@ def increaseVersion(manifest):
     file_out.write(json.dumps(data, indent=4))
     file_out.close()
 
+def push_code():
+    cmd = "git add src/assets/manifest.json & git commit -m 'increase version for release' & git push"
+    run_cmd(cmd)
 
 startTime = timeit.default_timer()
 
-# update_code()
+if args.target == "all" or args.target == "update":
+    update_code()
+
+if args.target == "tag":
+    tag()
+
+if args.target == "push":
+    print("Launcher: ")
+    os.chdir(LAUNCHER_DIR_PATH)
+    push_code()
+
+    dirs = os.listdir(IONIC_DIR_PATH)
+    for dir in dirs:
+        dapp_dir = os.path.join(IONIC_DIR_PATH, dir)
+        if os.path.isdir(dapp_dir):
+            print("Dapp push code: " + dir)
+            os.chdir(dapp_dir)
+            push_code()
+    # Trinity repo
+    os.chdir(PROJECT_DIR_PATH)
+    run_cmd('git add Launcher')
+
+    dirs = os.listdir(IONIC_DIR_PATH)
+    for dir in dirs:
+        if os.path.isdir(dapp_dir):
+            run_cmd('git add ' + dir)
+
+    run_cmd("git commit -m 'increase version for release' & git push")
 
 if args.target == "all":
     print("Launcher: ")
-    increaseVersion(LAUNCHER_DIR_PATH +'/src/assets/manifest.json')
+    increase_version(LAUNCHER_DIR_PATH +'/src/assets/manifest.json')
 
     dirs = os.listdir(IONIC_DIR_PATH)
     for dir in dirs:
@@ -102,7 +133,11 @@ if args.target == "all":
         if os.path.isdir(dapp_dir):
             print("Dapp: " + dir)
             os.chdir(dapp_dir)
-            increaseVersion(dapp_dir +'/src/assets/manifest.json')
+            increase_version(dapp_dir +'/src/assets/manifest.json')
+
+if args.target == "all" or args.target == "build":
+    os.chdir(PROJECT_DIR_PATH)
+    run_cmd('./ToolChains/bin/build all --release')
 
 elapsed = timeit.default_timer() - startTime
 minutes = elapsed / 60
