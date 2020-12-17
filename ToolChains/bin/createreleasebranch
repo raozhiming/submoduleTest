@@ -1,0 +1,118 @@
+#!/usr/bin/env python3
+
+import os
+import sys
+import subprocess
+import argparse
+import distutils.dir_util as dir_util
+import textwrap
+import timeit
+import json
+
+parser = argparse.ArgumentParser(description='For Trinity release',
+                                 formatter_class=argparse.RawTextHelpFormatter)
+parser.add_argument('target', metavar='TARGET', choices=['all', 'build', 'incversion', 'push', 'tag', 'update'],
+                    help=textwrap.dedent('''\
+                         Specify the target.
+                         branch: update code;
+                         push: push branch;
+                         update: update master branch code.
+                     '''))
+args = parser.parse_args()
+
+SCRIPT_PATH=os.path.realpath(__file__)
+TOOLCHAINS_DIR_PATH=os.path.dirname(os.path.dirname(SCRIPT_PATH))
+TOOLCHAINS_DIR_NAME=os.path.basename(TOOLCHAINS_DIR_PATH)
+PROJECT_DIR_PATH=os.path.join(TOOLCHAINS_DIR_PATH, "..")
+RUNTIME_DIR_PATH=os.path.join(PROJECT_DIR_PATH, "Runtime")
+LAUNCHER_DIR_PATH=os.path.join(PROJECT_DIR_PATH, "Launcher")
+DAPPS_DIR_PATH=os.path.join(PROJECT_DIR_PATH, "Dapps")
+IONIC_DIR_PATH=os.path.join(DAPPS_DIR_PATH, "Ionic")
+
+
+def run_cmd(cmd, ignore_error=False):
+    print("Running: " + cmd)
+    ret = subprocess.call(cmd, shell=True)
+    if not ignore_error and ret != 0:
+        sys.exit(ret)
+
+
+def update_code():
+    os.chdir(PROJECT_DIR_PATH)
+    # prompt
+    update_code = input("Update master branch code. Any changes in the working tree are discarded. Type 'y' to continue :")
+    if update_code.lower() != 'y':
+        sys.exit(1)
+    run_cmd('git checkout master && git reset --hard')
+    run_cmd("git submodule foreach 'git reset --hard && git checkout master'")
+    run_cmd('git pull --rebase')
+    run_cmd('git submodule update --init --rebase')
+
+def create_branch():
+    # for Trinity and all submodules
+    # get tag name
+    branchName = "release"
+    # tag_push = input("tag name is " + branchName + "\nType 'y' to tag and push :")
+    # if tag_push.lower() != 'y':
+    #     sys.exit(1)
+
+    os.chdir(PROJECT_DIR_PATH)
+    cmd = "git branch %s && git checkout %s && git reset --hard origin/master"%(branchName,branchName)
+    run_cmd(cmd)
+    cmd = "git submodule foreach 'git branch %s && git checkout %s && git reset --hard origin/master'"%(branchName,branchName)
+    run_cmd(cmd)
+    print("** create_branch end **")
+
+def push_branch():
+    # for Trinity and all submodules
+    # get tag name
+    branchName = "release"
+    tag_push = input("branch name is " + branchName + "\nType 'y' to push :")
+    if tag_push.lower() != 'y':
+        sys.exit(1)
+
+    os.chdir(PROJECT_DIR_PATH)
+    cmd = "git checkout %s && git push origin %s"%(branchName,branchName)
+    run_cmd(cmd)
+    cmd = "git submodule foreach 'git checkout %s && git push origin %s'"%(branchName,branchName)
+    run_cmd(cmd)
+
+def let_user_pick(options):
+    for idx, element in enumerate(options):
+        print("{}) {}".format(idx+1,element))
+
+    while True:
+        i = input("Enter number: ")
+        try:
+            if 0 < int(i) <= len(options):
+                return int(i) - 1
+        except:
+            pass
+    return None
+
+startTime = timeit.default_timer()
+
+if args.target == "all" or args.target == "build":
+    if not args.platform:
+        print("Pls choose the platform: [android, ios]")
+        options = ["android", "ios"]
+        index = let_user_pick(options)
+        args.platform = options[index]
+
+if args.target == "update":
+    update_code()
+
+if args.target == "branch":
+    create_branch()
+
+if args.target == "push":
+    update_code = input("Do you manually modify the version name in scripts/patches/after_platform_add_android/build_gradle.patch. Type 'y' to continue :")
+    if update_code.lower() != 'y':
+        sys.exit(1)
+    push_branch()
+
+
+elapsed = timeit.default_timer() - startTime
+minutes = elapsed / 60
+seconds = elapsed % 60
+print('elapsed time [%d min %0.2fs]' % (minutes, seconds))
