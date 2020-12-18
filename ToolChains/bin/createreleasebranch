@@ -7,14 +7,14 @@ import argparse
 import distutils.dir_util as dir_util
 import textwrap
 import timeit
-import json
 
 parser = argparse.ArgumentParser(description='For Trinity release',
                                  formatter_class=argparse.RawTextHelpFormatter)
-parser.add_argument('target', metavar='TARGET', choices=['branch', 'create', 'push', 'update'],
+parser.add_argument('target', metavar='TARGET', choices=['branch', 'checkout', 'create', 'push', 'update'],
                     help=textwrap.dedent('''\
                          Specify the target.
                          branch: switch branch;
+                         checkout: checkout release branch;
                          create: create branch;
                          push: push branch;
                          update: update master branch code.
@@ -61,29 +61,43 @@ def update_code():
     run_cmd('git pull --rebase')
     run_cmd('git submodule update --init --rebase')
 
-def create_branch():
-    branchName = "release"
+def checkout_branch(branchName, originBranch):
+    # branchName = "release"
 
     os.chdir(PROJECT_DIR_PATH)
-    cmd = "git branch %s & git checkout %s && git reset --hard origin/master"%(branchName,branchName)
+    cmd = "git branch %s & git checkout %s && git reset --hard origin/%s"%(branchName,branchName,originBranch)
     run_cmd(cmd)
 
-    md = "git submodule foreach 'git branch %s & true'"%(branchName)
+    # Maybe the branch already exist, so add "& true" to return true
+    cmd = "git submodule foreach 'git branch %s & true'"%(branchName)
+    run_cmd(cmd)
+    cmd = "git submodule foreach 'git checkout %s && git reset --hard origin/%s'"%(branchName,originBranch)
     run_cmd(cmd)
 
-    cmd = "git submodule foreach 'git checkout %s && git reset --hard origin/master'"%(branchName)
-    run_cmd(cmd)
+# def create_branch():
+#     branchName = "release"
+
+#     os.chdir(PROJECT_DIR_PATH)
+#     cmd = "git branch %s & git checkout %s && git reset --hard origin/master"%(branchName,branchName)
+#     run_cmd(cmd)
+
+#     # Maybe the branch already exist, so add "& true" to return true
+#     cmd = "git submodule foreach 'git branch %s & true'"%(branchName)
+#     run_cmd(cmd)
+#     cmd = "git submodule foreach 'git checkout %s && git reset --hard origin/master'"%(branchName)
+#     run_cmd(cmd)
 
 def push_branch():
+    # be careful
     branchName = "release"
-    tag_push = input("branch name is " + branchName + "\nType 'y' to push :")
+    tag_push = input("branch name is " + branchName + "\nBe careful, it will push with '--force', Type 'y' to push:")
     if tag_push.lower() != 'y':
         sys.exit(1)
 
     os.chdir(PROJECT_DIR_PATH)
-    cmd = "git checkout %s && git push origin %s"%(branchName,branchName)
+    cmd = "git checkout %s && git push origin %s --force"%(branchName,branchName)
     run_cmd(cmd)
-    cmd = "git submodule foreach 'git checkout %s && git push origin %s'"%(branchName,branchName)
+    cmd = "git submodule foreach 'git checkout %s && git push origin %s --force'"%(branchName,branchName)
     run_cmd(cmd)
 
 def switch_branch():
@@ -101,8 +115,11 @@ startTime = timeit.default_timer()
 if args.target == "branch":
     switch_branch()
 
+if args.target == "checkout":
+    checkout_branch(release, release)
+
 if args.target == "create":
-    create_branch()
+    checkout_branch(release, master)
 
 if args.target == "push":
     push_branch()
