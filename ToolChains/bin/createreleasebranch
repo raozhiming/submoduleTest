@@ -116,10 +116,10 @@ if args.target == "branch":
     switch_branch()
 
 if args.target == "checkout":
-    checkout_branch(release, release)
+    checkout_branch("release", "release")
 
 if args.target == "create":
-    checkout_branch(release, master)
+    checkout_branch("release", "master")
 
 if args.target == "push":
     push_branch()
