@@ -23,12 +23,7 @@ args = parser.parse_args()
 
 SCRIPT_PATH=os.path.realpath(__file__)
 TOOLCHAINS_DIR_PATH=os.path.dirname(os.path.dirname(SCRIPT_PATH))
-TOOLCHAINS_DIR_NAME=os.path.basename(TOOLCHAINS_DIR_PATH)
 PROJECT_DIR_PATH=os.path.join(TOOLCHAINS_DIR_PATH, "..")
-RUNTIME_DIR_PATH=os.path.join(PROJECT_DIR_PATH, "Runtime")
-LAUNCHER_DIR_PATH=os.path.join(PROJECT_DIR_PATH, "Launcher")
-DAPPS_DIR_PATH=os.path.join(PROJECT_DIR_PATH, "Dapps")
-IONIC_DIR_PATH=os.path.join(DAPPS_DIR_PATH, "Ionic")
 
 
 def run_cmd(cmd, ignore_error=False):
