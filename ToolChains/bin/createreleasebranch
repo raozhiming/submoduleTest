@@ -65,7 +65,7 @@ def create_branch():
     branchName = "release"
 
     os.chdir(PROJECT_DIR_PATH)
-    cmd = "git brnach %s & git checkout %s && git reset --hard origin/master"%(branchName,branchName)
+    cmd = "git branch %s & git checkout %s && git reset --hard origin/master"%(branchName,branchName)
     run_cmd(cmd)
 
     md = "git submodule foreach 'git branch %s & true'"%(branchName)
