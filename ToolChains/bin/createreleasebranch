@@ -70,7 +70,9 @@ def create_branch():
     branchName = "release"
 
     os.chdir(PROJECT_DIR_PATH)
-    cmd = "git branch %s && git checkout %s && git reset --hard origin/master"%(branchName,branchName)
+    cmd = "git branch %s"%(branchName)
+    run_cmd(cmd, True)
+    cmd = "git checkout %s && git reset --hard origin/master"%(branchName)
     run_cmd(cmd)
     cmd = "git submodule foreach 'git branch %s && git checkout %s && git reset --hard origin/master'"%(branchName,branchName)
     run_cmd(cmd)
@@ -106,9 +108,6 @@ if args.target == "create":
     create_branch()
 
 if args.target == "push":
-    update_code = input("Push code to release branch? Type 'y' to continue :")
-    if update_code.lower() != 'y':
-        sys.exit(1)
     push_branch()
 
 if args.target == "update":
