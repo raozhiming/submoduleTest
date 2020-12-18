@@ -11,10 +11,11 @@ import json
 
 parser = argparse.ArgumentParser(description='For Trinity release',
                                  formatter_class=argparse.RawTextHelpFormatter)
-parser.add_argument('target', metavar='TARGET', choices=['all', 'build', 'incversion', 'push', 'tag', 'update'],
+parser.add_argument('target', metavar='TARGET', choices=['branch', 'create', 'push', 'update'],
                     help=textwrap.dedent('''\
                          Specify the target.
-                         branch: update code;
+                         branch: switch branch;
+                         create: create branch;
                          push: push branch;
                          update: update master branch code.
                      '''))
@@ -36,47 +37,6 @@ def run_cmd(cmd, ignore_error=False):
     if not ignore_error and ret != 0:
         sys.exit(ret)
 
-
-def update_code():
-    os.chdir(PROJECT_DIR_PATH)
-    # prompt
-    update_code = input("Update master branch code. Any changes in the working tree are discarded. Type 'y' to continue :")
-    if update_code.lower() != 'y':
-        sys.exit(1)
-    run_cmd('git checkout master && git reset --hard')
-    run_cmd("git submodule foreach 'git reset --hard && git checkout master'")
-    run_cmd('git pull --rebase')
-    run_cmd('git submodule update --init --rebase')
-
-def create_branch():
-    # for Trinity and all submodules
-    # get tag name
-    branchName = "release"
-    # tag_push = input("tag name is " + branchName + "\nType 'y' to tag and push :")
-    # if tag_push.lower() != 'y':
-    #     sys.exit(1)
-
-    os.chdir(PROJECT_DIR_PATH)
-    cmd = "git branch %s && git checkout %s && git reset --hard origin/master"%(branchName,branchName)
-    run_cmd(cmd)
-    cmd = "git submodule foreach 'git branch %s && git checkout %s && git reset --hard origin/master'"%(branchName,branchName)
-    run_cmd(cmd)
-    print("** create_branch end **")
-
-def push_branch():
-    # for Trinity and all submodules
-    # get tag name
-    branchName = "release"
-    tag_push = input("branch name is " + branchName + "\nType 'y' to push :")
-    if tag_push.lower() != 'y':
-        sys.exit(1)
-
-    os.chdir(PROJECT_DIR_PATH)
-    cmd = "git checkout %s && git push origin %s"%(branchName,branchName)
-    run_cmd(cmd)
-    cmd = "git submodule foreach 'git checkout %s && git push origin %s'"%(branchName,branchName)
-    run_cmd(cmd)
-
 def let_user_pick(options):
     for idx, element in enumerate(options):
         print("{}) {}".format(idx+1,element))
@@ -90,27 +50,69 @@ def let_user_pick(options):
             pass
     return None
 
+def choose_branch():
+    options = ["master", "release"]
+    index = let_user_pick(options)
+    return options[index]
+
+def update_code():
+    os.chdir(PROJECT_DIR_PATH)
+    # prompt
+    update_code = input("Update master branch code. Any changes in the working tree are discarded. Type 'y' to continue :")
+    if update_code.lower() != 'y':
+        sys.exit(1)
+    run_cmd('git checkout master && git reset --hard')
+    run_cmd("git submodule foreach 'git reset --hard && git checkout master'")
+    run_cmd('git pull --rebase')
+    run_cmd('git submodule update --init --rebase')
+
+def create_branch():
+    branchName = "release"
+
+    os.chdir(PROJECT_DIR_PATH)
+    cmd = "git branch %s && git checkout %s && git reset --hard origin/master"%(branchName,branchName)
+    run_cmd(cmd)
+    cmd = "git submodule foreach 'git branch %s && git checkout %s && git reset --hard origin/master'"%(branchName,branchName)
+    run_cmd(cmd)
+
+def push_branch():
+    branchName = "release"
+    tag_push = input("branch name is " + branchName + "\nType 'y' to push :")
+    if tag_push.lower() != 'y':
+        sys.exit(1)
+
+    os.chdir(PROJECT_DIR_PATH)
+    cmd = "git checkout %s && git push origin %s"%(branchName,branchName)
+    run_cmd(cmd)
+    cmd = "git submodule foreach 'git checkout %s && git push origin %s'"%(branchName,branchName)
+    run_cmd(cmd)
+
+def switch_branch():
+    branchName = choose_branch()
+    print("checkout %s branch"%(branchName))
+
+    os.chdir(PROJECT_DIR_PATH)
+    cmd = "git checkout %s"%(branchName)
+    run_cmd(cmd)
+    cmd = "git submodule foreach 'git checkout %s'"%(branchName)
+    run_cmd(cmd)
+
 startTime = timeit.default_timer()
 
-if args.target == "all" or args.target == "build":
-    if not args.platform:
-        print("Pls choose the platform: [android, ios]")
-        options = ["android", "ios"]
-        index = let_user_pick(options)
-        args.platform = options[index]
-
-if args.target == "update":
-    update_code()
-
 if args.target == "branch":
+    switch_branch()
+
+if args.target == "create":
     create_branch()
 
 if args.target == "push":
-    update_code = input("Do you manually modify the version name in scripts/patches/after_platform_add_android/build_gradle.patch. Type 'y' to continue :")
+    update_code = input("Push code to release branch? Type 'y' to continue :")
     if update_code.lower() != 'y':
         sys.exit(1)
     push_branch()
 
+if args.target == "update":
+    update_code()
 
 elapsed = timeit.default_timer() - startTime
 minutes = elapsed / 60
